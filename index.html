@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LangSight — Stationery Detection</title>
+  <link rel="icon" href="/favicon.ico" type="image/svg+xml">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FFF4E0;
+      --surface: #FFFFFF;
+      --border: #1E1E24;
+      --red: #FF6B6B;
+      --teal: #4ECDC4;
+      --yellow: #FFE66D;
+      --green: #A8E6CF;
+      --pink: #FF8B94;
+      --purple: #CDB4DB;
+      --text: #1E1E24;
+      --muted: #5D6D7E;
+      --r: 20px;
+      --rs: 12px;
+      --sh: 4px 4px 0px var(--border);
+      --sh-lg: 8px 8px 0px var(--border);
+      --sh-0: 0px 0px 0px var(--border);
+      --fd: 'Fredoka', sans-serif;
+      --fb: 'Nunito', sans-serif;
+      --fm: 'JetBrains Mono', monospace;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--fb);
+      min-height: 100vh;
+      overflow-x: hidden
+    }
+
+    #three-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 28px 80px
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+      animation: bounceIn .8s cubic-bezier(.68, -.55, .265, 1.55)
+    }
+
+    @keyframes bounceIn {
+      0% {
+        transform: scale(.9) translateY(-20px);
+        opacity: 0
+      }
+
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1
+      }
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 16px
+    }
+
+    .logo-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--yellow);
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: var(--sh);
+      transform: rotate(-5deg);
+      transition: .3s
+    }
+
+    .logo:hover .logo-icon {
+      transform: rotate(5deg) scale(1.1)
+    }
+
+    .logo-text h1 {
+      font-family: var(--fd);
+      font-size: 2.2rem;
+      font-weight: 700;
+      text-shadow: 2px 2px 0 var(--pink);
+      letter-spacing: -.5px;
+      line-height: 1.1
+    }
+
+    .logo-text p {
+      font-size: .85rem;
+      color: var(--muted);
+      font-weight: 700
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    .badge {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .78rem;
+      padding: 5px 14px;
+      border-radius: 99px;
+      box-shadow: 2px 2px 0 var(--border)
+    }
+
+    .badge-green {
+      background: var(--green)
+    }
+
+    .badge-pink {
+      background: var(--pink);
+      color: #fff
+    }
+
+    .conn-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 99px;
+      padding: 6px 14px;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: .15s
+    }
+
+    .conn-pill:active {
+      transform: translate(2px, 2px);
+      box-shadow: var(--sh-0)
+    }
+
+    .conn-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--muted);
+      border: 2px solid var(--border)
+    }
+
+    .conn-dot.ok {
+      background: var(--green)
+    }
+
+    .conn-dot.err {
+      background: var(--red)
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      border: 2px solid var(--border);
+      margin-right: 5px;
+      animation: pulse 1s infinite alternate
+    }
+
+    .live-dot.on {
+      background: var(--red)
+    }
+
+    .live-dot.off {
+      animation: none
+    }
+
+    @keyframes pulse {
+      from {
+        transform: scale(1)
+      }
+
+      to {
+        transform: scale(1.25)
+      }
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 3px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--sh-lg);
+      padding: 20px;
+      transition: transform .3s
+    }
+
+    .card:hover {
+      transform: translateY(-3px)
+    }
+
+    .card-title {
+      font-family: var(--fd);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    /* Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 24px;
+      align-items: start
+    }
+
+    @media(max-width:960px) {
+      .main-grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* Camera */
+    .cam-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #EAEAEA;
+      border-radius: var(--rs);
+      overflow: hidden;
+      border: 3px solid var(--border)
+    }
+
+    #videoEl {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scaleX(-1)
+    }
+
+    #annotatedImg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      z-index: 2
+    }
+
+    .cam-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 244, 224, .92);
+      flex-direction: column;
+      gap: 16px;
+      z-index: 3
+    }
+
+    .cam-overlay.hidden {
+      display: none
+    }
+
+    .cam-overlay .ico {
+      font-size: 4rem;
+      animation: float 3s ease-in-out infinite
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-10px)
+      }
+    }
+
+    .cam-overlay p {
+      font-weight: 700;
+      font-size: 1rem;
+      text-align: center
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 11px 22px;
+      border-radius: var(--rs);
+      border: 3px solid var(--border);
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .95rem;
+      cursor: pointer;
+      box-shadow: var(--sh);
+      transition: all .15s;
+      white-space: nowrap
+    }
+
+    .btn:active {
+      transform: translate(4px, 4px);
+      box-shadow: var(--sh-0)
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: var(--sh)
+    }
+
+    .btn-p {
+      background: var(--red);
+      color: #fff
+    }
+
+    .btn-s {
+      background: var(--surface);
+      color: var(--text)
+    }
+
+    .btn-t {
+      background: var(--teal);
+      color: #fff
+    }
+
+    .btn-y {
+      background: var(--yellow)
+    }
+
+    .cam-btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px
+    }
+
+    .btn-cam {
+      flex: 1;
+      background: var(--surface);
+      border: 3px solid var(--border);
+      color: var(--text);
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .9rem;
+      padding: 10px;
+      border-radius: var(--rs);
+      cursor: pointer;
+      box-shadow: var(--sh);
+      transition: .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px
+    }
+
+    .btn-cam:active {
+      transform: translate(4px, 4px);
+      box-shadow: var(--sh-0)
+    }
+
+    .btn-cam.active {
+      background: var(--yellow)
+    }
+
+    .btn-cam:disabled {
+      opacity: .45;
+      cursor: not-allowed
+    }
+
+    /* Controls */
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center
+    }
+
+    #queryInput {
+      flex: 1;
+      background: var(--bg);
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      color: var(--text);
+      font-family: var(--fb);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 12px 14px;
+      outline: none;
+      transition: .2s
+    }
+
+    #queryInput:focus {
+      background: #fff;
+      box-shadow: var(--sh);
+      transform: translateY(-2px)
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 700
+    }
+
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 12px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      background: var(--purple);
+      outline: none
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      background: var(--yellow);
+      cursor: pointer
+    }
+
+    #confVal {
+      font-family: var(--fd);
+      font-size: 1.1rem;
+      min-width: 44px;
+      text-align: right
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700
+    }
+
+    .toggle {
+      position: relative;
+      width: 50px;
+      height: 28px
+    }
+
+    .toggle input {
+      display: none
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      border: 3px solid var(--border);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: .3s
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all .3s cubic-bezier(.68, -.55, .265, 1.55)
+    }
+
+    .toggle input:checked+.toggle-track {
+      background: var(--green)
+    }
+
+    .toggle input:checked+.toggle-track::after {
+      transform: translateX(20px);
+      background: var(--text)
+    }
+
+    .row-opts {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap
+    }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 20px
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      padding: 14px 8px;
+      text-align: center;
+      box-shadow: var(--sh);
+      transition: .2s;
+      cursor: default
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px) rotate(-2deg);
+      background: var(--yellow)
+    }
+
+    .stat-val {
+      font-family: var(--fd);
+      font-size: 1.7rem;
+      font-weight: 700
+    }
+
+    .stat-lbl {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    /* NLP panel */
+    .nlp-panel {
+      margin-top: 20px
+    }
+
+    .nlp-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px
+    }
+
+    .nlp-method {
+      font-family: var(--fd);
+      font-size: .78rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      box-shadow: 2px 2px 0 var(--border)
+    }
+
+    .nlp-method.semantic {
+      background: var(--purple)
+    }
+
+    .nlp-method.keyword {
+      background: var(--yellow)
+    }
+
+    .nlp-method.blacklist {
+      background: var(--red);
+      color: #fff
+    }
+
+    .score-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px
+    }
+
+    .score-item {
+      display: grid;
+      grid-template-columns: 28px 1fr 90px 46px 46px;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: var(--rs);
+      border: 3px solid var(--border);
+      background: var(--surface);
+      box-shadow: 2px 2px 0 var(--border);
+      transition: .2s
+    }
+
+    .score-item.winner {
+      background: var(--green);
+      box-shadow: var(--sh);
+      transform: scale(1.02)
+    }
+
+    .score-item.low {
+      opacity: .5;
+      box-shadow: none
+    }
+
+    .score-item.above {
+      border-color: #22c55e
+    }
+
+    .s-em {
+      font-size: 1.1rem
+    }
+
+    .s-nm {
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .s-bar {
+      height: 10px;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      overflow: hidden;
+      position: relative
+    }
+
+    .s-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      border-right: 2px solid var(--border);
+      transition: width .5s cubic-bezier(.68, -.55, .265, 1.55)
+    }
+
+    .s-abs {
+      font-family: var(--fd);
+      font-size: .82rem;
+      font-weight: 700;
+      text-align: right
+    }
+
+    .s-thr {
+      font-family: var(--fm);
+      font-size: .6rem;
+      color: var(--muted);
+      text-align: center
+    }
+
+    .score-item.winner .s-thr {
+      color: #065f46
+    }
+
+    /* Right panel */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 18px
+    }
+
+    .status-box {
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      padding: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      box-shadow: var(--sh);
+      background: var(--surface)
+    }
+
+    .st-icon {
+      font-size: 1.8rem
+    }
+
+    .st-txt {
+      font-size: .88rem;
+      line-height: 1.5;
+      color: var(--muted);
+      font-weight: 600
+    }
+
+    .st-txt strong {
+      color: var(--text);
+      display: block;
+      font-size: 1rem;
+      font-family: var(--fd);
+      margin-bottom: 3px
+    }
+
+    .status-box.success {
+      background: var(--green)
+    }
+
+    .status-box.error {
+      background: var(--red)
+    }
+
+    .status-box.error .st-txt,
+    .status-box.error .st-txt strong {
+      color: #fff
+    }
+
+    .status-box.warning {
+      background: var(--yellow)
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+      flex-wrap: wrap
+    }
+
+    .tab-btn {
+      padding: 9px 16px;
+      border-radius: var(--rs);
+      border: 3px solid var(--border);
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .85rem;
+      cursor: pointer;
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 2px 2px 0 var(--border);
+      transition: .1s
+    }
+
+    .tab-btn.active {
+      background: var(--teal);
+      box-shadow: var(--sh-0);
+      transform: translate(2px, 2px);
+      color: #fff
+    }
+
+    .tab-content {
+      display: none
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn .3s ease
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    /* Detections */
+    .dets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .det-item {
+      background: var(--bg);
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px
+    }
+
+    .det-name {
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: 1rem
+    }
+
+    .det-meta {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .conf-col {
+      width: 100px;
+      flex-shrink: 0
+    }
+
+    .conf-lbl {
+      font-family: var(--fd);
+      font-weight: 700;
+      font-size: .82rem;
+      text-align: right;
+      margin-bottom: 3px
+    }
+
+    .conf-bar {
+      height: 10px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface);
+      overflow: hidden
+    }
+
+    .conf-fill {
+      height: 100%;
+      border-right: 2px solid var(--border)
+    }
+
+    .dl-btn {
+      background: var(--teal);
+      border: 2px solid var(--border);
+      border-radius: 99px;
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .72rem;
+      padding: 4px 12px;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: .15s;
+      white-space: nowrap
+    }
+
+    .dl-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: none
+    }
+
+    /* Example accordion */
+    .cat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px
+    }
+
+    .cat {
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      overflow: hidden;
+      box-shadow: 2px 2px 0 var(--border)
+    }
+
+    .cat-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--surface);
+      cursor: pointer;
+      font-family: var(--fd);
+      font-size: .9rem;
+      font-weight: 600;
+      transition: .15s;
+      user-select: none
+    }
+
+    .cat-head:active {
+      background: var(--bg)
+    }
+
+    .cat.open .cat-head {
+      background: var(--yellow)
+    }
+
+    .cat-head .ch {
+      margin-left: auto;
+      font-size: .7rem;
+      color: var(--muted);
+      transition: .3s
+    }
+
+    .cat.open .cat-head .ch {
+      transform: rotate(180deg)
+    }
+
+    .cat-pills {
+      display: none;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 10px 14px;
+      border-top: 2px solid var(--border);
+      background: var(--bg)
+    }
+
+    .cat.open .cat-pills {
+      display: flex
+    }
+
+    .kw-pill {
+      font-size: .73rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: .15s
+    }
+
+    .kw-pill:active {
+      transform: translate(2px, 2px)
+    }
+
+    .kw-pill:hover {
+      border-color: var(--teal)
+    }
+
+    /* History */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px
+    }
+
+    .log-list::-webkit-scrollbar {
+      width: 6px
+    }
+
+    .log-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px
+    }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: .82rem;
+      padding: 9px 12px;
+      border-radius: var(--rs);
+      background: var(--surface);
+      border: 2px solid var(--border)
+    }
+
+    .log-t {
+      font-family: var(--fm);
+      font-size: .68rem;
+      color: var(--muted)
+    }
+
+    .log-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .log-dot.ok {
+      background: var(--green)
+    }
+
+    .log-dot.fail {
+      background: var(--red)
+    }
+
+    .log-dot.warn {
+      background: var(--yellow)
+    }
+
+    .log-msg {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    /* Class stats tab */
+    .cls-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px
+    }
+
+    .cls-stat-card {
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: var(--rs);
+      padding: 10px 12px
+    }
+
+    .cls-stat-name {
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .85rem;
+      margin-bottom: 4px
+    }
+
+    .cls-stat-rows {
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      gap: 2px
+    }
+
+    /* Admin panel */
+    .admin-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px
+    }
+
+    .admin-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end
+    }
+
+    .admin-row select,
+    .admin-row textarea {
+      flex: 1;
+      background: var(--bg);
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      font-family: var(--fb);
+      font-weight: 700;
+      font-size: .88rem;
+      padding: 10px 12px;
+      outline: none;
+      resize: vertical
+    }
+
+    .admin-row textarea {
+      min-height: 70px
+    }
+
+    /* Source badges - tampilkan asal deteksi (yolo/dino/ensemble/dino_only) */
+    .src-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: .62rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin-left: 4px;
+      border: 1.5px solid var(--border);
+      font-family: var(--fd);
+      text-transform: uppercase;
+    }
+    .src-badge.yolo      { background:#bbf7d0; color:#14532d }
+    .src-badge.dino      { background:#bfdbfe; color:#1e3a8a }
+    .src-badge.ensemble  { background:#fde68a; color:#78350f }
+    .src-badge.dino_only { background:#e9d5ff; color:#581c87 }
+
+    /* Mode banner di atas detection result */
+    .mode-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 2px solid var(--border);
+      background: #fef3c7;
+      font-family: var(--fd);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .mode-banner.ensemble  { background:#fde68a; color:#78350f }
+    .mode-banner.dino_only { background:#bfdbfe; color:#1e3a8a }
+
+    /* Weights inspector */
+    .weights-panel {
+      margin-top: 10px;
+      padding: 10px;
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      background: var(--bg-card);
+      font-family: var(--fd);
+      font-size: .72rem;
+    }
+    .weights-panel h4 { margin: 0 0 8px 0; font-size: .82rem }
+    .weights-table { width: 100%; border-collapse: collapse }
+    .weights-table th, .weights-table td {
+      border: 1px solid #ddd; padding: 4px 6px; text-align: center;
+    }
+    .weights-table th { background: #f3f4f6; font-weight: 700 }
+    .weights-table .w-bar-cell {
+      padding: 0; height: 16px; min-width: 100px; position: relative; overflow: hidden;
+    }
+    .weights-table .w-bar {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: .65rem;
+    }
+    .weights-table .w-yolo { background: #22c55e }
+    .weights-table .w-dino { background: #6366f1 }
+
+    /* Model switcher */
+    .model-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 4px
+    }
+
+    .model-btn {
+      padding: 8px 16px;
+      border-radius: var(--rs);
+      border: 3px solid var(--border);
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .82rem;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 var(--border);
+      transition: .15s;
+      background: var(--surface)
+    }
+
+    .model-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: none
+    }
+
+    .model-btn.active-m {
+      background: var(--teal);
+      color: #fff
+    }
+
+    /* Scan all */
+    .scan-all-btn {
+      width: 100%;
+      margin-top: 10px;
+      background: var(--purple);
+      border: 3px solid var(--border);
+      font-family: var(--fd);
+      font-weight: 600;
+      font-size: .95rem;
+      padding: 12px;
+      border-radius: var(--rs);
+      cursor: pointer;
+      box-shadow: var(--sh);
+      transition: .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px
+    }
+
+    .scan-all-btn:active {
+      transform: translate(4px, 4px);
+      box-shadow: var(--sh-0)
+    }
+
+    /* Spinner */
+    .spin {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border: 4px solid var(--bg);
+      border-top-color: var(--border);
+      border-radius: 50%;
+      animation: rot .8s linear infinite
+    }
+
+    @keyframes rot {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* Modal */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 30, 36, .8);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px)
+    }
+
+    .modal-bg.open {
+      display: flex
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 4px solid var(--border);
+      border-radius: var(--r);
+      padding: 28px;
+      width: 420px;
+      max-width: 92vw;
+      box-shadow: 12px 12px 0 var(--border)
+    }
+
+    .modal h3 {
+      font-family: var(--fd);
+      font-size: 1.3rem;
+      margin-bottom: 6px
+    }
+
+    .modal p {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 20px
+    }
+
+    .modal input {
+      width: 100%;
+      background: var(--bg);
+      border: 3px solid var(--border);
+      border-radius: var(--rs);
+      font-weight: 700;
+      font-size: .95rem;
+      padding: 12px;
+      outline: none;
+      margin-bottom: 20px;
+      font-family: var(--fm)
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end
+    }
+
+    footer {
+      border-top: 3px dashed var(--border);
+      margin-top: 60px;
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: .82rem;
+      font-weight: 700;
+      color: var(--muted);
+      flex-wrap: wrap;
+      gap: 14px
+    }
+
+    footer strong {
+      color: var(--text);
+      font-family: var(--fd);
+      font-size: .95rem
+    }
+
+    .empty {
+      text-align: center;
+      padding: 28px;
+      font-weight: 700;
+      color: var(--muted)
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="three-canvas"></canvas>
+
+  <!-- Modal Backend -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <h3>⚙️ Backend URL</h3>
+      <p>URL server FastAPI LangSight.</p>
+      <input type="text" id="beInput" placeholder="http://localhost:8000">
+      <div class="modal-btns">
+        <button class="btn btn-s" onclick="closeModal()">Batal</button>
+        <button class="btn btn-p" onclick="saveBe()">Simpan & Test</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">👀</div>
+        <div class="logo-text">
+          <h1>LangSight</h1>
+          <p>stationery detection · ensemble · capstone 29</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-green">Sentence Transformer</span>
+        <span><span class="live-dot off" id="liveDot"></span><span id="liveLabel"
+            style="font-weight:700">Nonaktif</span></span>
+        <div class="conn-pill" id="connPill" onclick="openModal()">
+          <div class="conn-dot" id="connDot"></div>
+          <span id="connLabel">Mengecek...</span>
+        </div>
+        <span class="badge badge-pink">Grounding DINO</span>
+      </div>
+    </header>
+
+    <div class="main-grid">
+      <!-- LEFT -->
+      <div>
+        <div class="card">
+          <div class="card-title"><span>📸</span> Kamera Real-time</div>
+          <div class="cam-wrap">
+            <video id="videoEl" autoplay playsinline muted></video>
+            <img id="annotatedImg" alt="">
+            <div class="cam-overlay" id="camOverlay">
+              <div class="ico">📷</div>
+              <p>Aktifkan kamera untuk mulai!</p>
+              <button class="btn btn-p" onclick="startCam()" style="font-size:.88rem;padding:9px 20px">Aktifkan</button>
+            </div>
+          </div>
+
+          <!-- Model switcher (DINO tiny vs base) -->
+          <div class="model-row" style="margin-top:12px">
+            <span style="font-weight:700;font-size:.82rem">Model:</span>
+            <button class="model-btn active-m" id="btnTiny" onclick="switchModel('tiny',this)">⚡ Tiny (Cepat)</button>
+            <button class="model-btn" id="btnBase" onclick="switchModel('base',this)">🎯 Base (Akurat)</button>
+            <span id="modelStatus" style="font-size:.72rem;color:var(--muted);font-weight:700"></span>
+          </div>
+
+          <div class="cam-btn-row">
+            <button class="btn-cam" id="btnStart" onclick="startCam()">▶️ Mulai</button>
+            <button class="btn-cam" id="btnSnap" onclick="runDetect()" disabled>🔍 Deteksi</button>
+            <button class="btn-cam" onclick="stopCam()"
+              style="background:var(--red);color:#fff;border-color:var(--border)">⏹ Stop</button>
+          </div>
+
+          <!-- Scan all button -->
+          <button class="scan-all-btn" onclick="scanAll()">🔭 Scan Semua Objek di Frame</button>
+
+          <div class="controls">
+            <div class="input-group">
+              <input type="text" id="queryInput"
+                placeholder="Ketik apa saja... cth: benda buat nulis atau gunting dan lem" autocomplete="off">
+              <div class="spin" id="spin"></div>
+              <button class="btn btn-p" id="detectBtn" onclick="runDetect()">Cari!</button>
+              <button class="btn btn-s" onclick="resetAll()">Reset</button>
+            </div>
+            <div class="row-opts">
+              <div class="slider-row" style="flex:1;min-width:180px">
+                <label style="font-size:.82rem">Threshold:</label>
+                <input type="range" id="confSlider" min="5" max="80" value="35"
+                  oninput="document.getElementById('confVal').textContent=this.value+'%'">
+                <span id="confVal">35%</span>
+              </div>
+              <div class="toggle-row">
+                <label class="toggle"><input type="checkbox" id="autoTog" onchange="toggleAuto(this.checked)"><span
+                    class="toggle-track"></span></label>
+                <span style="font-size:.82rem">Auto (2s)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-val" id="sTotal">0</div>
+            <div class="stat-lbl">Total Query</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="sFound">0</div>
+            <div class="stat-lbl">Ditemukan</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="sConf">—</div>
+            <div class="stat-lbl">Avg Conf</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="sMs">—</div>
+            <div class="stat-lbl">Latency</div>
+          </div>
+        </div>
+
+        <!-- NLP Scores — D. with threshold indicator -->
+        <div class="card nlp-panel">
+          <div class="nlp-hd">
+            <div class="card-title" style="margin:0"><span>🧠</span> Skor Kemiripan Makna</div>
+            <span class="nlp-method semantic" id="nlpBadge">semantic</span>
+          </div>
+          <div class="score-list" id="scoreList">
+            <div class="empty">Belum ada query. Mulai ketik! 👇</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <div class="card">
+          <div class="card-title"><span>📊</span> Status</div>
+          <div class="status-box" id="statusBox">
+            <div class="st-icon">💡</div>
+            <div class="st-txt"><strong>Siap Bermain!</strong>Masukkan kalimat apa saja — AI memahami bahasa natural.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="tab('results',this)">Hasil</button>
+            <button class="tab-btn" onclick="tab('examples',this)">Contoh</button>
+            <button class="tab-btn" onclick="tab('history',this)">Riwayat</button>
+            <button class="tab-btn" onclick="tab('klsstats',this)">Statistik</button>
+            <button class="tab-btn" onclick="tab('admin',this)">Admin</button>
+          </div>
+
+          <div class="tab-content active" id="tab-results">
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <!-- Download annotated image -->
+              <button class="dl-btn" id="dlBtn" onclick="downloadAnnotated()" style="display:none">⬇ Unduh Foto</button>
+              <!-- Export session log -->
+              <button class="dl-btn" onclick="exportSession()" style="background:var(--yellow)">📤 Export Sesi</button>
+            </div>
+            <div class="dets-list" id="detsList">
+              <div class="empty">Belum ada hasil 🕵️</div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-examples">
+            <div style="font-weight:700;color:var(--muted);margin-bottom:12px;font-size:.85rem">Klik untuk langsung
+              dicoba!</div>
+            <div class="cat-list" id="catList"></div>
+          </div>
+
+          <div class="tab-content" id="tab-history">
+            <div class="log-list" id="logList">
+              <div class="empty">Belum ada riwayat</div>
+            </div>
+          </div>
+
+          <!-- Per-class confidence stats -->
+          <div class="tab-content" id="tab-klsstats">
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <button class="btn btn-s" onclick="loadClassStats()" style="font-size:.8rem;padding:7px 14px">🔄
+                Refresh</button>
+            </div>
+            <div class="cls-stats" id="clsStats">
+              <div class="empty" style="grid-column:1/-1">Belum ada data deteksi</div>
+            </div>
+          </div>
+
+          <!-- Admin: prompt editor -->
+          <div class="tab-content" id="tab-admin">
+            <div style="font-weight:700;color:var(--muted);margin-bottom:12px;font-size:.85rem">Edit prompt Grounding
+              DINO tanpa restart server. Format: <code>sinonim1 . sinonim2 . sinonim3 .</code></div>
+            <div class="admin-form">
+              <div class="admin-row">
+                <select id="adminCls" onchange="loadPrompt(this.value)">
+                  <option value="">-- Pilih Kelas --</option>
+                </select>
+              </div>
+              <div class="admin-row">
+                <textarea id="adminPrompt" placeholder="Prompt Grounding DINO untuk kelas ini..."></textarea>
+              </div>
+              <div id="adminPromptInfo" style="font-family:var(--fm);font-size:.7rem;color:var(--muted);margin-bottom:8px;display:none"></div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-t" onclick="savePrompt()" style="font-size:.85rem;padding:9px 18px">💾 Simpan
+                  Prompt</button>
+                <span id="adminStatus"
+                  style="font-size:.8rem;color:var(--muted);font-weight:700;align-self:center"></span>
+              </div>
+            </div>
+
+            <!-- Confidence Calibration -->
+            <div style="margin-top:18px;border-top:2px dashed var(--border);padding-top:14px">
+              <div style="font-family:var(--fd);font-size:1rem;font-weight:600;margin-bottom:10px">⚖️ Kalibrasi
+                Confidence</div>
+              <div style="font-size:.78rem;color:var(--muted);font-weight:700;margin-bottom:12px">
+                Platt scaling: <code>cal = 1/(1+exp(a×raw+b))</code><br>
+                Default a=-1, b=0 → tidak ada kalibrasi. Turunkan |a| untuk naikkan skor.
+              </div>
+              <div class="admin-form">
+                <div class="admin-row">
+                  <select id="calCls">
+                    <option value="">-- Pilih Kelas --</option>
+                  </select>
+                </div>
+                <div style="display:flex;gap:10px">
+                  <div style="flex:1">
+                    <label style="font-size:.78rem;font-weight:700">Parameter a</label>
+                    <input id="calA" type="number" step="0.1" value="-1"
+                      style="width:100%;background:var(--bg);border:2px solid var(--border);border-radius:var(--rs);padding:8px;font-weight:700;margin-top:4px">
+                  </div>
+                  <div style="flex:1">
+                    <label style="font-size:.78rem;font-weight:700">Parameter b</label>
+                    <input id="calB" type="number" step="0.1" value="0"
+                      style="width:100%;background:var(--bg);border:2px solid var(--border);border-radius:var(--rs);padding:8px;font-weight:700;margin-top:4px">
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button class="btn btn-y" onclick="saveCalibration()" style="font-size:.82rem;padding:8px 16px">⚖️
+                    Simpan Kalibrasi</button>
+                  <button class="btn btn-s" onclick="loadCalibrations()" style="font-size:.82rem;padding:8px 14px">📋
+                    Lihat Semua</button>
+                  <span id="calStatus" style="font-size:.78rem;color:var(--muted);font-weight:700"></span>
+                </div>
+                <div id="calPreview" style="font-family:var(--fm);font-size:.72rem;color:var(--muted);margin-top:6px">
+                </div>
+              </div>
+            </div>
+
+            <!-- Feedback Summary -->
+            <div style="margin-top:18px;border-top:2px dashed var(--border);padding-top:14px">
+              <div style="font-family:var(--fd);font-size:1rem;font-weight:600;margin-bottom:10px">🧠 Ringkasan Feedback
+                (Active Learning)</div>
+              <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button class="btn btn-s" onclick="loadFeedback()" style="font-size:.8rem;padding:7px 14px">🔄
+                  Refresh</button>
+              </div>
+              <div id="feedbackSummary" style="font-size:.8rem;color:var(--muted);font-weight:700">Belum ada data
+                feedback.</div>
+            </div>
+
+            <!-- Ensemble Weights Inspector -->
+            <div style="margin-top:18px;border-top:2px dashed var(--border);padding-top:14px">
+              <div style="font-family:var(--fd);font-size:1rem;font-weight:600;margin-bottom:10px">⚖️ Ensemble Weights (YOLO vs DINO)</div>
+              <div style="font-size:.78rem;color:var(--muted);font-weight:700;margin-bottom:10px">
+                Bobot per kelas dari notebook <code>03_Ensemble_Eval</code> via file
+                <code>ensemble_weights.json</code>. Formula:
+                <code>w = (F1 × AP@50)^2 / Σ(F1 × AP@50)^2</code>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:10px">
+                <button class="btn btn-s" onclick="loadWeights()" style="font-size:.8rem;padding:7px 14px">🔄
+                  Muat Bobot</button>
+                <span id="weightsStatus" style="font-size:.78rem;color:var(--muted);font-weight:700;align-self:center"></span>
+              </div>
+              <div id="weightsPanel"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div><strong>LangSight</strong> — Capstone 29 · Universitas Telkom · Vadly · Virgie · Tesalonika · Tifany ·
+        Via</div>
+      <div style="font-family:var(--fm);font-size:.72rem">YOLOv11n + Grounding DINO + WBF Ensemble + WordNet NLP + FastAPI</div>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Three.js background
+    (function () {
+      const cv = document.getElementById('three-canvas');
+      const R = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+      R.setSize(innerWidth, innerHeight); R.setPixelRatio(Math.min(devicePixelRatio, 2));
+      const S = new THREE.Scene();
+      S.add(new THREE.AmbientLight(0xffffff, .7));
+      const dl = new THREE.DirectionalLight(0xffffff, .8); dl.position.set(10, 20, 10); S.add(dl);
+      const C = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, .1, 100); C.position.z = 30;
+      const geos = [new THREE.TorusGeometry(1.5, .6, 16, 32), new THREE.BoxGeometry(2, 2, 2),
+      new THREE.SphereGeometry(1.5, 32, 32), new THREE.ConeGeometry(1.5, 3, 32), new THREE.CylinderGeometry(1, 1, 2, 32)];
+      const pal = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0xA8E6CF, 0xCDB4DB, 0xFF8B94];
+      const shapes = [];
+      for (let i = 0; i < 14; i++) {
+        const g = geos[i % geos.length];
+        const m = new THREE.MeshToonMaterial({ color: pal[i % pal.length], transparent: true, opacity: .8 });
+        const mesh = new THREE.Mesh(g, m);
+        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: 0x1E1E24, linewidth: 2 })));
+        mesh.position.set((Math.random() - .5) * 60, (Math.random() - .5) * 40, -10 - Math.random() * 20);
+        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+        mesh.userData = { rx: (Math.random() - .5) * .008, ry: (Math.random() - .5) * .008 };
+        S.add(mesh); shapes.push(mesh);
+      }
+      let mx = 0, my = 0;
+      document.addEventListener('mousemove', e => { mx = (e.clientX / innerWidth - .5) * 2; my = (e.clientY / innerHeight - .5) * 2 });
+      function frame() {
+        requestAnimationFrame(frame);
+        shapes.forEach(m => { m.rotation.x += m.userData.rx; m.rotation.y += m.userData.ry });
+        C.position.x += (mx * 3 - C.position.x) * .04; C.position.y += (-my * 3 - C.position.y) * .04;
+        C.lookAt(0, 0, 0); R.render(S, C);
+      }
+      frame();
+      window.addEventListener('resize', () => { C.aspect = innerWidth / innerHeight; C.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight) });
+    })();
+  </script>
+
+  <script>
+    // Data 
+    const CLS = {
+      pen: { e: "🖊️", c: "#4ECDC4" },
+      pencil: { e: "✏️", c: "#CDB4DB" },
+      eraser: { e: "🧽", c: "#FF8B94" },
+      sharpener: { e: "🔩", c: "#a3e635" },
+      correction_tape: { e: "🩹", c: "#FF6B6B" },
+      stapler: { e: "🗜️", c: "#FFE66D" },
+      clip: { e: "📎", c: "#94a3b8" },
+      bottle: { e: "🍶", c: "#FF9A9E" },
+      notebook: { e: "📓", c: "#86efac" },
+    };
+
+    const EXAMPLES = [
+      {
+        cat: "✏️ Alat Tulis", color: "#4ECDC4", q: [
+          ["pulpen saya di mana", "pen"],
+          ["bolpoin gel", "pen"],
+          ["pensil 2B", "pencil"],
+          ["pensil kayu", "pencil"],
+          ["penghapus karet", "eraser"],
+          ["rautan pensil", "sharpener"],
+          ["tipex correction", "correction_tape"],
+        ]
+      },
+      {
+        cat: "📎 Kantor", color: "#FFE66D", q: [
+          ["stapler hekter", "stapler"],
+          ["klip kertas binder", "clip"],
+        ]
+      },
+      {
+        cat: "🗒️ Lain-lain", color: "#A8E6CF", q: [
+          ["botol minum", "bottle"],
+          ["tumbler air", "bottle"],
+          ["buku tulis", "notebook"],
+          ["buku catatan spiral", "notebook"],
+        ]
+      },
+    ];
+
+    // State 
+    let BE = localStorage.getItem('ls_be') || location.origin;
+    let stream = null, autoTmr = null;
+    let nQ = 0, nF = 0, sumC = 0, nC = 0, logs = [];
+    let lastAnnotated = null;  // base64 gambar terakhir untuk download
+    let PROMPTS = {};           // cache prompt DINO per kelas
+    const THRESHOLD = 0.40, GAP = 0.08;
+
+    //  Backend 
+    async function checkBe() {
+      const dot = document.getElementById('connDot'), lbl = document.getElementById('connLabel');
+      try {
+        const r = await fetch(BE + '/health', { signal: AbortSignal.timeout(3000) });
+        if (r.ok) {
+          const d = await r.json();
+          dot.className = 'conn-dot ok';
+          // Tampilkan mode aktif di label connection: ensemble vs yolo+dino vs dino-only
+          const modeLabel = d.ensemble_active ? ' [ENS]' : (d.yolo_loaded ? ' [Y+D]' : ' [DINO]');
+          lbl.textContent = 'Terhubung!' + modeLabel + ' 🎉';
+          const b = document.getElementById('nlpBadge');
+          b.textContent = d.nlp_mode || 'semantic'; b.className = 'nlp-method ' + (d.nlp_mode || 'semantic');
+          // Populate admin select
+          if (d.classes) populateAdminSelect(d.classes);
+          return true;
+        }
+      } catch { }
+      dot.className = 'conn-dot err'; lbl.textContent = 'Backend Mati 💀'; return false;
+    }
+    function openModal() { document.getElementById('beInput').value = BE; document.getElementById('modalBg').classList.add('open') }
+    function closeModal() { document.getElementById('modalBg').classList.remove('open') }
+    async function saveBe() {
+      BE = document.getElementById('beInput').value.trim().replace(/\/$/, '');
+      localStorage.setItem('ls_be', BE); closeModal();
+      const ok = await checkBe();
+      setStatus(ok ? 'success' : 'error', ok ? '✅' : '❌', ok ? 'Terhubung!' : 'Gagal Konek',
+        ok ? 'Backend aktif di <strong>' + BE + '</strong>' : 'Tidak bisa konek ke <strong>' + BE + '</strong>');
+    }
+
+    //  Camera 
+    async function startCam() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 960 } } });
+        const v = document.getElementById('videoEl'); v.srcObject = stream; await v.play();
+        document.getElementById('camOverlay').classList.add('hidden');
+        document.getElementById('btnSnap').disabled = false;
+        document.getElementById('btnStart').classList.add('active');
+        document.getElementById('liveDot').classList.remove('off');
+        document.getElementById('liveDot').classList.add('on');
+        document.getElementById('liveLabel').textContent = 'Aktif 🟢';
+        setStatus('success', '📸', 'Kamera Menyala!', 'Ketik apa yang mau dicari!');
+      } catch { setStatus('error', '❌', 'Kamera Gagal', 'Izinkan akses kamera di browser.') }
+    }
+    function stopCam() {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
+      document.getElementById('camOverlay').classList.remove('hidden');
+      document.getElementById('btnSnap').disabled = true;
+      document.getElementById('btnStart').classList.remove('active');
+      document.getElementById('liveDot').classList.remove('on');
+      document.getElementById('liveDot').classList.add('off');
+      document.getElementById('liveLabel').textContent = 'Nonaktif';
+      clearInterval(autoTmr); autoTmr = null;
+      document.getElementById('autoTog').checked = false;
+      hideAnn();
+    }
+    function captureBlob() {
+      return new Promise(res => {
+        const v = document.getElementById('videoEl');
+        const cv = document.createElement('canvas');
+        cv.width = v.videoWidth || 640; cv.height = v.videoHeight || 480;
+        const ctx = cv.getContext('2d');
+        ctx.translate(cv.width, 0); ctx.scale(-1, 1); ctx.drawImage(v, 0, 0);
+        cv.toBlob(res, 'image/jpeg', .88);
+      });
+    }
+
+    //  Detect 
+    async function runDetect() {
+      const q = document.getElementById('queryInput').value.trim();
+      if (!q) { setStatus('warning', '⚠️', 'Tulis Dulu!', 'Masukkan kalimat dulu ya.'); return }
+      if (!stream) { setStatus('warning', '⚠️', 'Kamera Mati!', 'Nyalakan kamera dulu.'); return }
+      nQ++; document.getElementById('sTotal').textContent = nQ;
+      setSpin(true);
+      try {
+        const blob = await captureBlob();
+        const fd = new FormData();
+        fd.append('file', blob, 'frame.jpg');
+        fd.append('query', q);
+        fd.append('box_threshold', document.getElementById('confSlider').value / 100);
+        fd.append('text_threshold', '0.15');
+        fd.append('annotate', 'true');
+        const t0 = performance.now();
+        const res = await fetch(BE + '/detect', { method: 'POST', body: fd, signal: AbortSignal.timeout(15000) });
+        const ms = Math.round(performance.now() - t0);
+        document.getElementById('sMs').textContent = ms + 'ms';
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        setSpin(false);
+        renderScores(d.top_scores || [], d.target_class, d.method);
+        if (!d.success && !d.target_class) {
+          setStatus('error', '🤷', 'Gak Paham!', d.message || 'Query tidak dikenali.');
+          addLog('fail', q, 'tidak dikenali'); renderDets([]); hideAnn(); return;
+        }
+        if (d.annotated_image) { showAnn('data:image/jpeg;base64,' + d.annotated_image); lastAnnotated = 'data:image/jpeg;base64,' + d.annotated_image; document.getElementById('dlBtn').style.display = 'inline-block'; }
+        if (d.detections && d.detections.length > 0) {
+          nF++; document.getElementById('sFound').textContent = nF;
+          d.detections.forEach(x => { sumC += x.confidence; nC++; });
+          document.getElementById('sConf').textContent = nC ? (sumC / nC * 100).toFixed(0) + '%' : '—';
+          setStatus('success', '🎉', 'Ketemu Tuh!', d.message);
+          addLog('ok', q, d.detections.length + '× ' + (d.target_class || '?') + (d.similarity ? ' (' + d.similarity.toFixed(2) + ')' : ''));
+        } else {
+          setStatus('warning', '👀', 'Gak Keliatan', d.message || 'Coba turunkan threshold.');
+          addLog('warn', q, (d.target_class || '?') + ' tidak terdeteksi');
+        }
+        renderDets(d.detections || [], d.mode);
+      } catch (e) {
+        setSpin(false);
+        const to = e.name === 'TimeoutError';
+        setStatus('error', '🔌', to ? 'Lambat Banget!' : 'Error', to ? 'Backend tidak merespons.' : 'Gagal: ' + e.message);
+        addLog('fail', q, 'Error: ' + e.message);
+      }
+    }
+
+    // Scan all classes — kirim ke /detect/all (DINO-only, by design)
+    async function scanAll() {
+      if (!stream) { setStatus('warning', '⚠️', 'Kamera Mati!', 'Nyalakan kamera dulu.'); return }
+      setSpin(true);
+      try {
+        const blob = await captureBlob();
+        const fd = new FormData();
+        fd.append('file', blob, 'frame.jpg');
+        fd.append('box_threshold', document.getElementById('confSlider').value / 100);
+        fd.append('text_threshold', '0.15');
+        fd.append('annotate', 'true');
+        const t0 = performance.now();
+        const res = await fetch(BE + '/detect/all', { method: 'POST', body: fd, signal: AbortSignal.timeout(30000) });
+        const ms = Math.round(performance.now() - t0);
+        document.getElementById('sMs').textContent = ms + 'ms';
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        setSpin(false);
+        if (d.annotated_image) { showAnn('data:image/jpeg;base64,' + d.annotated_image); lastAnnotated = 'data:image/jpeg;base64,' + d.annotated_image; document.getElementById('dlBtn').style.display = 'inline-block'; }
+        setStatus('success', '🔭', 'Scan Selesai!', d.message);
+        renderDets(d.detections || [], d.mode || 'dino_only');
+        addLog('ok', '[SCAN ALL]', d.detections.length + ' objek ditemukan | ' + ms + 'ms');
+        nQ++; document.getElementById('sTotal').textContent = nQ;
+        if (d.detections.length > 0) { nF++; document.getElementById('sFound').textContent = nF; }
+      } catch (e) {
+        setSpin(false);
+        setStatus('error', '🔌', 'Error Scan', e.message);
+      }
+    }
+
+    //  Render 
+    // NLP scores — render dengan threshold indicator dan gap winner-runner-up
+    function renderScores(scores, winner, method) {
+      const el = document.getElementById('scoreList');
+      const b = document.getElementById('nlpBadge');
+      b.textContent = method || 'semantic'; b.className = 'nlp-method ' + (method || 'semantic');
+      if (!scores.length) { el.innerHTML = '<div class="empty">Belum ada query.</div>'; return }
+      const mx = Math.max(...scores.map(s => s.score), .01);
+      el.innerHTML = scores.map((item, idx) => {
+        const c = item['class'] || ''; const s = item.score;
+        const info = CLS[c] || { e: '🔹', c: '#CDB4DB' };
+        const pct = (s / mx * 100).toFixed(1);
+        const abs = (s * 100).toFixed(1);
+        const isW = c === winner;
+        const isLow = s < 0.18;
+        const aboveT = s >= THRESHOLD;
+        // Gap indicator: winner vs runner-up
+        const isSecond = !isW && idx === 1;
+        const gap = isSecond && scores[0] ? (scores[0].score - s) : null;
+        let thrTxt = '';
+        if (isW && aboveT) thrTxt = '✅ ' + abs + '% ≥ thr';
+        else if (isW && !aboveT) thrTxt = '⚠️ di bawah thr';
+        else if (isSecond && gap !== null) thrTxt = 'gap=' + ((gap || 0) * 100).toFixed(1) + '%';
+        return `<div class="score-item ${isW ? 'winner' : ''} ${isLow ? 'low' : ''} ${aboveT && !isW ? 'above' : ''}">
+      <span class="s-em">${info.e}</span>
+      <span class="s-nm" title="${esc(c)}">${esc(c)}</span>
+      <div class="s-bar"><div class="s-fill" style="width:${pct}%;background:${info.c}"></div></div>
+      <span class="s-abs" style="color:${isW ? '#065f46' : 'var(--muted)'}">${abs}%</span>
+      <span class="s-thr">${thrTxt}</span>
+    </div>`;
+      }).join('');
+    }
+
+    function renderDets(dets, mode) {
+      const el = document.getElementById('detsList');
+      if (!dets || !dets.length) { el.innerHTML = '<div class="empty">Belum ada hasil 🕵️</div>'; return }
+
+      // Mode banner kalau ada
+      let banner = '';
+      if (mode) {
+        const modeLabel = mode === 'ensemble' ? '🔀 ENSEMBLE (YOLO+DINO)' : '🔵 DINO ONLY';
+        banner = `<div class="mode-banner ${mode}">${modeLabel}</div>`;
+      }
+
+      el.innerHTML = banner + dets.map(d => {
+        const info = CLS[d['class']] || { e: '🔹', c: '#CDB4DB' };
+        const pct = (d.confidence * 100).toFixed(1);
+        const rawPct = d.raw_score ? (d.raw_score * 100).toFixed(1) : null;
+        const ghostTag = d.ghost ? '<span style="font-size:.65rem;background:#fde68a;border:1px solid #92400e;border-radius:4px;padding:1px 5px;margin-left:4px">👻 ghost</span>' : '';
+        const smoothTag = d.smoothed && !d.ghost ? '<span style="font-size:.65rem;background:#d1fae5;border:1px solid #065f46;border-radius:4px;padding:1px 5px;margin-left:4px">📈 smooth</span>' : '';
+        const rawTag = rawPct && rawPct !== pct ? `<span style="font-size:.6rem;color:var(--muted)"> raw=${rawPct}%</span>` : '';
+
+        // Source badge: tampilkan dari mana deteksi berasal (yolo/dino/ensemble/dino_only)
+        const src = d.source || '';
+        let srcBadge = '';
+        if (src) {
+          const srcLabel = {
+            'yolo': '🎯 YOLO',
+            'dino': '🔵 DINO',
+            'ensemble': '🔀 ENS',
+            'dino_only': '🟣 D-only'
+          }[src] || src;
+          srcBadge = `<span class="src-badge ${src}">${srcLabel}</span>`;
+        }
+
+        // Contributors info untuk ensemble (kalau ada)
+        let contribInfo = '';
+        if (d.contributors && d.contributors.length > 0 && src === 'ensemble') {
+          contribInfo = `<span style="font-size:.6rem;color:var(--muted);margin-left:4px">[${d.contributors.join('+')}]</span>`;
+        }
+
+        return `<div class="det-item">
+      <div style="flex:1">
+        <div class="det-name">${info.e} ${esc(d['class'])}${srcBadge}${contribInfo}${ghostTag}${smoothTag}</div>
+        <div class="det-meta">bbox: [${d.bbox.map(v => v + 'px').join(', ')}]${rawTag}</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="dl-btn" onclick="sendFeedback('${esc(d['class'])}',true)" style="background:#d1fae5;font-size:.65rem;padding:3px 8px">✅ Benar</button>
+          <button class="dl-btn" onclick="sendFeedback('${esc(d['class'])}',false)" style="background:#fee2e2;font-size:.65rem;padding:3px 8px">❌ Salah</button>
+        </div>
+      </div>
+      <div class="conf-col">
+        <div class="conf-lbl" style="color:${info.c}">${pct}%</div>
+        <div class="conf-bar"><div class="conf-fill" style="width:${pct}%;background:${info.c}"></div></div>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    function addLog(type, q, r) {
+      const t = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      logs.unshift({ type, q, r, t }); if (logs.length > 80) logs.pop(); renderLog();
+    }
+    function renderLog() {
+      const el = document.getElementById('logList');
+      if (!logs.length) { el.innerHTML = '<div class="empty">Belum ada riwayat</div>'; return }
+      el.innerHTML = logs.map(i => `<div class="log-item">
+    <span class="log-t">${i.t}</span>
+    <span class="log-dot ${i.type}"></span>
+    <span class="log-msg"><strong>"${esc(i.q)}"</strong> → ${esc(i.r)}</span>
+  </div>`).join('');
+    }
+
+    function buildExamples() {
+      document.getElementById('catList').innerHTML = EXAMPLES.map((cat, i) => `
+    <div class="cat ${i === 0 ? 'open' : ''}">
+      <div class="cat-head" onclick="toggleCat(this.parentElement)">
+        <span>${cat.cat}</span><span class="ch">▼</span>
+      </div>
+      <div class="cat-pills">
+        ${cat.q.map(([q, c]) => `<span class="kw-pill" onclick="setQ('${esc(q)}')">${(CLS[c] || { e: '🔹' }).e} ${esc(q)}</span>`).join('')}
+      </div>
+    </div>`).join('');
+    }
+    function toggleCat(el) { el.classList.toggle('open') }
+    function setQ(q) { document.getElementById('queryInput').value = q; document.querySelectorAll('.tab-btn')[0].click() }
+
+    // Per-class confidence stats (dari endpoint /stats/classes)
+    async function loadClassStats() {
+      try {
+        const r = await fetch(BE + '/stats/classes');
+        const d = await r.json();
+        const el = document.getElementById('clsStats');
+        const stats = d.class_stats || {};
+        if (!Object.keys(stats).length) { el.innerHTML = '<div class="empty" style="grid-column:1/-1">Belum ada data deteksi.</div>'; return }
+        el.innerHTML = Object.entries(stats).map(([cls, s]) => {
+          const info = CLS[cls] || { e: '🔹' };
+          return `<div class="cls-stat-card">
+        <div class="cls-stat-name">${info.e} ${esc(cls)}</div>
+        <div class="cls-stat-rows">
+          <span>Terdeteksi: <strong>${s.n_detected}×</strong></span>
+          <span>Avg conf: <strong>${(s.avg_conf * 100).toFixed(1)}%</strong></span>
+          <span>Max: <strong>${(s.max_conf * 100).toFixed(1)}%</strong></span>
+          <span>Min: <strong>${(s.min_conf * 100).toFixed(1)}%</strong></span>
+        </div>
+      </div>`;
+        }).join('');
+      } catch (e) { document.getElementById('clsStats').innerHTML = '<div class="empty" style="grid-column:1/-1">Error: ' + e.message + '</div>' }
+    }
+
+    // Admin: edit prompt Grounding DINO per kelas tanpa restart server
+    function populateAdminSelect(classes) {
+      ['adminCls', 'calCls'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel.options.length > 1) return;
+        classes.forEach(c => {
+          const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
+        });
+      });
+    }
+    async function loadPrompt(cls) {
+      const info = document.getElementById('adminPromptInfo');
+      if (!cls) { info.style.display = 'none'; return; }
+      try {
+        const r = await fetch(BE + '/classes'); const d = await r.json();
+        PROMPTS = d.class_prompts || {};
+        document.getElementById('adminPrompt').value = PROMPTS[cls] || '';
+
+        // Tampilkan threshold yang aktif untuk kelas ini (informasi only)
+        const ct = (d.class_thresholds || {})[cls];
+        const lines = [];
+        lines.push(`NLP threshold (sim min) : ${ct !== undefined ? ct : 'default'}`);
+        const nAnchors = ((d.anchors || {})[cls] || []).length;
+        lines.push(`Anchor seeds            : ${nAnchors}`);
+        info.textContent = lines.join('   |   ');
+        info.style.display = 'block';
+      } catch (e) {
+        info.style.display = 'none';
+      }
+    }
+    async function savePrompt() {
+      const cls = document.getElementById('adminCls').value;
+      const prompt = document.getElementById('adminPrompt').value;
+      const st = document.getElementById('adminStatus');
+      if (!cls || !prompt.trim()) { st.textContent = '⚠️ Pilih kelas dan isi prompt!'; return }
+      try {
+        const fd = new FormData(); fd.append('cls', cls); fd.append('prompt', prompt);
+        const r = await fetch(BE + '/admin/prompt', { method: 'POST', body: fd });
+        if (r.ok) { st.textContent = '✅ Tersimpan! Efektif langsung.'; PROMPTS[cls] = prompt; }
+        else { const e = await r.json(); st.textContent = '❌ ' + e.detail; }
+      } catch (e) { st.textContent = '❌ ' + e.message; }
+      setTimeout(() => st.textContent = '', 3000);
+    }
+
+    // Switch antara DINO tiny dan base tanpa restart server
+    async function switchModel(type, btn) {
+      const modelId = type === 'base' ? 'IDEA-Research/grounding-dino-base' : 'IDEA-Research/grounding-dino-tiny';
+      document.getElementById('modelStatus').textContent = 'Loading...';
+      try {
+        const fd = new FormData(); fd.append('model_id', modelId);
+        const r = await fetch(BE + '/admin/model', { method: 'POST', body: fd, signal: AbortSignal.timeout(120000) });
+        const d = await r.json();
+        if (r.ok) {
+          document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active-m'));
+          btn.classList.add('active-m');
+          document.getElementById('modelStatus').textContent = '✅ Aktif';
+        } else { document.getElementById('modelStatus').textContent = '❌ ' + d.detail; }
+      } catch (e) { document.getElementById('modelStatus').textContent = '❌ ' + e.message; }
+      setTimeout(() => document.getElementById('modelStatus').textContent = '', 4000);
+    }
+
+    // Download gambar annotated terakhir
+    function downloadAnnotated() {
+      if (!lastAnnotated) return;
+      const a = document.createElement('a');
+      a.href = lastAnnotated;
+      a.download = 'langsight_' + Date.now() + '.jpg';
+      a.click();
+    }
+
+    // Active learning — kirim feedback user benar/salah ke /feedback
+    let _lastQuery = '';
+    document.getElementById('queryInput').addEventListener('input', e => { _lastQuery = e.target.value; });
+
+    async function sendFeedback(targetCls, isCorrect) {
+      const query = _lastQuery || document.getElementById('queryInput').value || targetCls;
+      try {
+        const fd = new FormData();
+        fd.append('query', query);
+        fd.append('target_class', targetCls);
+        fd.append('is_correct', isCorrect ? 'true' : 'false');
+        fd.append('feedback_note', isCorrect ? 'user confirmed correct' : 'user marked incorrect');
+        const r = await fetch(BE + '/feedback', { method: 'POST', body: fd });
+        const d = await r.json();
+        const msg = isCorrect ? `✅ Feedback dikirim untuk "${targetCls}"` : `❌ Feedback dikirim — anchor "${query}" ditambah ke ${targetCls}`;
+        setStatus(isCorrect ? 'success' : 'warning', isCorrect ? '✅' : '🔧', 'Feedback Diterima!', msg);
+        addLog(isCorrect ? 'ok' : 'warn', query, isCorrect ? `confirmed ${targetCls}` : `false detect: ${targetCls}`);
+      } catch (e) {
+        console.error('Feedback error:', e);
+      }
+    }
+
+    // Export riwayat session sebagai JSON download
+    async function exportSession() {
+      try {
+        const r = await fetch(BE + '/session/export');
+        const d = await r.json();
+        const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'langsight_session_' + Date.now() + '.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) { alert('Export gagal: ' + e.message) }
+    }
+
+    //  UI Helpers 
+    function showAnn(src) { document.getElementById('annotatedImg').src = src; document.getElementById('annotatedImg').style.display = 'block'; document.getElementById('videoEl').style.opacity = '0' }
+    function hideAnn() { document.getElementById('annotatedImg').style.display = 'none'; document.getElementById('videoEl').style.opacity = '1'; lastAnnotated = null; document.getElementById('dlBtn').style.display = 'none' }
+    function setSpin(on) { document.getElementById('spin').style.display = on ? 'inline-block' : 'none'; document.getElementById('detectBtn').disabled = on }
+    function toggleAuto(on) { clearInterval(autoTmr); autoTmr = null; if (on) autoTmr = setInterval(() => { if (document.getElementById('queryInput').value.trim()) runDetect(); }, 2000) }
+    function setStatus(type, icon, title, msg) {
+      const m = { success: 'success', error: 'error', warning: 'warning' };
+      document.getElementById('statusBox').className = 'status-box ' + (m[type] || '');
+      document.getElementById('statusBox').innerHTML = `<div class="st-icon">${icon}</div><div class="st-txt"><strong>${title}</strong>${msg}</div>`;
+    }
+    function resetAll() {
+      document.getElementById('queryInput').value = '';
+      document.getElementById('autoTog').checked = false;
+      clearInterval(autoTmr); autoTmr = null;
+      hideAnn(); renderDets([]);
+      document.getElementById('scoreList').innerHTML = '<div class="empty">Belum ada query. Mulai ketik! 👇</div>';
+      setStatus('', '💡', 'Siap Bermain!', 'Masukkan kalimat apa saja — AI memahami bahasa natural.');
+    }
+    function tab(n, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active'); document.getElementById('tab-' + n).classList.add('active');
+      if (n === 'klsstats') loadClassStats();
+      if (n === 'admin') checkBe();
+    }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+    // Confidence calibration (Platt scaling) — update parameter a, b per kelas
+    async function saveCalibration() {
+      const cls = document.getElementById('calCls').value;
+      const a = parseFloat(document.getElementById('calA').value);
+      const b = parseFloat(document.getElementById('calB').value);
+      const st = document.getElementById('calStatus');
+      if (!cls) { st.textContent = '⚠️ Pilih kelas dulu!'; return }
+      try {
+        const fd = new FormData(); fd.append('cls', cls); fd.append('a', a); fd.append('b', b);
+        const r = await fetch(BE + '/admin/calibrate', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (r.ok) {
+          st.textContent = '✅ Tersimpan!';
+          const prev = d.calibration_preview || {};
+          document.getElementById('calPreview').textContent =
+            'Preview: ' + Object.entries(prev).map(([raw, cal]) => `raw=${raw}→cal=${cal}`).join(' | ');
+        } else { st.textContent = '❌ ' + d.detail; }
+      } catch (e) { st.textContent = '❌ ' + e.message; }
+      setTimeout(() => st.textContent = '', 4000);
+    }
+
+    async function loadCalibrations() {
+      try {
+        const r = await fetch(BE + '/admin/calibration');
+        const d = await r.json();
+        const cals = d.calibrations || {};
+        const st = document.getElementById('calStatus');
+        if (!Object.keys(cals).length) { st.textContent = 'Belum ada kalibrasi aktif.'; return }
+        st.textContent = Object.entries(cals).map(([c, v]) => `${c}(a=${v.a},b=${v.b})`).join(' | ');
+      } catch (e) { document.getElementById('calStatus').textContent = '❌ ' + e.message; }
+    }
+
+    // Feedback summary (riwayat active learning yang sudah masuk)
+    async function loadFeedback() {
+      try {
+        const r = await fetch(BE + '/feedback/summary');
+        const d = await r.json();
+        const el = document.getElementById('feedbackSummary');
+        if (!d.total) { el.textContent = 'Belum ada feedback.'; return }
+        let html = `<strong>Total: ${d.total}</strong> | ✅ ${d.correct} benar | ❌ ${d.incorrect} salah<br><br>`;
+        html += '<strong>Per kelas:</strong><br>';
+        Object.entries(d.by_class || {}).forEach(([cls, v]) => {
+          const info = CLS[cls] || { e: '🔹' };
+          html += `${info.e} ${cls}: ✅${v.correct} ❌${v.incorrect}<br>`;
+        });
+        if (d.recent && d.recent.length) {
+          html += '<br><strong>Feedback terbaru:</strong><br>';
+          d.recent.slice(-3).reverse().forEach(e => {
+            html += `[${e.timestamp}] ${e.is_correct ? '✅' : '❌'} "${e.query}" → ${e.target_class}<br>`;
+          });
+        }
+        el.innerHTML = html;
+      } catch (e) { document.getElementById('feedbackSummary').textContent = '❌ ' + e.message; }
+    }
+
+    // Ensemble weights inspector — render tabel YOLO vs DINO per kelas
+    async function loadWeights() {
+      const st = document.getElementById('weightsStatus');
+      const panel = document.getElementById('weightsPanel');
+      st.textContent = 'Loading...';
+      try {
+        const r = await fetch(BE + '/classes/weights');
+        const d = await r.json();
+
+        if (!d.ensemble_active) {
+          st.textContent = '❌ Ensemble tidak aktif';
+          panel.innerHTML = `<div class="weights-panel">
+            <div style="color:var(--muted);font-weight:700">${d.message || 'Ensemble belum aktif. /detect pakai DINO only.'}</div>
+          </div>`;
+          return;
+        }
+
+        st.textContent = `✅ Aktif | WBF IoU=${d.wbf_iou}`;
+        const w = d.weights || {};
+        const meta = d.meta || {};
+        const yoloClasses = new Set(d.yolo_classes || []);
+        const dinoOnly = new Set(d.dino_only_classes || []);
+
+        let rows = '';
+        const CLASSES = ['pen','pencil','eraser','sharpener','correction_tape','stapler','clip','bottle','notebook'];
+        CLASSES.forEach(cls => {
+          const wc = w[cls] || {w_yolo:0.5, w_dino:0.5, reason:'-'};
+          const wy = (wc.w_yolo * 100).toFixed(0);
+          const wd = (wc.w_dino * 100).toFixed(0);
+          const yF1 = wc.yolo_f1 !== null && wc.yolo_f1 !== undefined ? wc.yolo_f1.toFixed(3) : '-';
+          const yAP = wc.yolo_ap50 !== null && wc.yolo_ap50 !== undefined ? wc.yolo_ap50.toFixed(3) : '-';
+          const dF1 = wc.dino_f1 !== null && wc.dino_f1 !== undefined ? wc.dino_f1.toFixed(3) : '-';
+          const dAP = wc.dino_ap50 !== null && wc.dino_ap50 !== undefined ? wc.dino_ap50.toFixed(3) : '-';
+          const info = CLS[cls] || { e: '🔹' };
+
+          let typeTag = '';
+          if (dinoOnly.has(cls)) {
+            typeTag = '<span style="font-size:.6rem;background:#e9d5ff;border:1px solid #581c87;border-radius:3px;padding:1px 4px;margin-left:4px;color:#581c87;font-weight:700">DINO-ONLY</span>';
+          } else if (yoloClasses.has(cls)) {
+            typeTag = '<span style="font-size:.6rem;background:#fde68a;border:1px solid #78350f;border-radius:3px;padding:1px 4px;margin-left:4px;color:#78350f;font-weight:700">ENSEMBLE</span>';
+          }
+
+          rows += `<tr>
+            <td style="text-align:left">${info.e} ${cls}${typeTag}</td>
+            <td>${yF1}</td>
+            <td>${yAP}</td>
+            <td>${dF1}</td>
+            <td>${dAP}</td>
+            <td class="w-bar-cell">
+              <div style="display:flex;height:100%">
+                ${wy > 0 ? `<div class="w-bar w-yolo" style="flex:${wy}">${wy}%</div>` : ''}
+                ${wd > 0 ? `<div class="w-bar w-dino" style="flex:${wd}">${wd}%</div>` : ''}
+              </div>
+            </td>
+          </tr>`;
+        });
+
+        const fallback = meta.fallback_default ? '<div style="color:#dc2626;font-weight:700;margin-bottom:8px">⚠️ Pakai fallback default (ensemble_weights.json tidak ditemukan)</div>' : '';
+
+        panel.innerHTML = `<div class="weights-panel">
+          ${fallback}
+          <table class="weights-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">Kelas</th>
+                <th>YOLO F1</th>
+                <th>YOLO AP@50</th>
+                <th>DINO F1</th>
+                <th>DINO AP@50</th>
+                <th>Weights (YOLO:DINO)</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--muted)">
+            <span class="src-badge ensemble">ENSEMBLE</span> = box-level fusion (YOLO+DINO).
+            <span class="src-badge dino_only">DINO-ONLY</span> = kelas yang YOLO model tidak punya.
+          </div>
+        </div>`;
+      } catch (e) {
+        st.textContent = '❌ ' + e.message;
+        panel.innerHTML = `<div class="weights-panel" style="color:#dc2626;font-weight:700">Gagal load: ${e.message}</div>`;
+      }
+    }
+
+    //  Init 
+    document.getElementById('queryInput').addEventListener('keydown', e => { if (e.key === 'Enter') runDetect() });
+    buildExamples();
+    checkBe();
+    setInterval(checkBe, 15000);
+  </script>
+</body>
+
+</html>

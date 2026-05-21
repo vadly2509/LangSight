@@ -1,0 +1,144 @@
+{
+  "meta": {
+    "description": "Per-class WBF weights from YOLO and DINO F1*AP@50",
+    "formula": "w = score^alpha / sum(score^alpha), score = F1 * AP@50",
+    "alpha": 2.0,
+    "floor": 0.1,
+    "yolo_conf": 0.25,
+    "dino_box_thr": 0.35,
+    "dino_text_thr": 0.25,
+    "wbf_iou": 0.5,
+    "target_classes": [
+      "pen",
+      "pencil",
+      "eraser",
+      "sharpener",
+      "correction_tape",
+      "stapler",
+      "clip",
+      "bottle",
+      "notebook"
+    ],
+    "yolo_eval_classes": [
+      "pen",
+      "pencil",
+      "eraser",
+      "stapler",
+      "correction_tape",
+      "bottle"
+    ],
+    "dino_only_classes": [
+      "sharpener",
+      "clip",
+      "notebook"
+    ],
+    "class_prompts": {
+      "pen": "ballpoint pen . ink pen . writing pen . gel pen .",
+      "pencil": "graphite pencil . wooden pencil . lead pencil . drafting pencil .",
+      "eraser": "rubber eraser block . white eraser . pencil eraser .",
+      "sharpener": "pencil sharpener . handheld sharpener .",
+      "correction_tape": "correction tape . white out tape . correction roller .",
+      "stapler": "office stapler . paper stapler . manual stapler .",
+      "clip": "paper clip . binder clip . metal paperclip .",
+      "bottle": "water bottle . drink bottle . beverage container .",
+      "notebook": "spiral notebook . exercise book . notepad . lined notebook ."
+    },
+    "per_class_box_thr": {
+      "pencil": 0.22,
+      "clip": 0.22,
+      "correction_tape": 0.25,
+      "sharpener": 0.25,
+      "stapler": 0.25
+    },
+    "adaptive_iou": {
+      "pen": 0.3,
+      "pencil": 0.3,
+      "clip": 0.3,
+      "correction_tape": 0.35,
+      "stapler": 0.4
+    }
+  },
+  "weights": {
+    "pen": {
+      "w_yolo": 0.5966,
+      "w_dino": 0.4034,
+      "reason": "computed",
+      "yolo_f1": 0.6,
+      "yolo_ap50": 0.7606,
+      "dino_f1": 0.5455,
+      "dino_ap50": 0.6879
+    },
+    "pencil": {
+      "w_yolo": 0.8301,
+      "w_dino": 0.1699,
+      "reason": "computed",
+      "yolo_f1": 0.4474,
+      "yolo_ap50": 0.7545,
+      "dino_f1": 0.4167,
+      "dino_ap50": 0.3665
+    },
+    "eraser": {
+      "w_yolo": 0.3627,
+      "w_dino": 0.6373,
+      "reason": "computed",
+      "yolo_f1": 0.381,
+      "yolo_ap50": 0.5917,
+      "dino_f1": 0.5135,
+      "dino_ap50": 0.582
+    },
+    "sharpener": {
+      "w_yolo": 0.0,
+      "w_dino": 1.0,
+      "reason": "dino_only",
+      "yolo_f1": null,
+      "yolo_ap50": null,
+      "dino_f1": 0.5915,
+      "dino_ap50": 0.8227
+    },
+    "correction_tape": {
+      "w_yolo": 0.8251,
+      "w_dino": 0.1749,
+      "reason": "computed",
+      "yolo_f1": 1.0,
+      "yolo_ap50": 1.0,
+      "dino_f1": 0.4762,
+      "dino_ap50": 0.9667
+    },
+    "stapler": {
+      "w_yolo": 0.6067,
+      "w_dino": 0.3933,
+      "reason": "computed",
+      "yolo_f1": 0.4118,
+      "yolo_ap50": 0.9762,
+      "dino_f1": 0.48,
+      "dino_ap50": 0.6743
+    },
+    "clip": {
+      "w_yolo": 0.0,
+      "w_dino": 1.0,
+      "reason": "dino_only",
+      "yolo_f1": null,
+      "yolo_ap50": null,
+      "dino_f1": 0.5263,
+      "dino_ap50": 0.8383
+    },
+    "bottle": {
+      "w_yolo": 0.5808,
+      "w_dino": 0.4192,
+      "reason": "computed",
+      "yolo_f1": 0.6076,
+      "yolo_ap50": 0.9085,
+      "dino_f1": 0.5839,
+      "dino_ap50": 0.8032
+    },
+    "notebook": {
+      "w_yolo": 0.0,
+      "w_dino": 1.0,
+      "reason": "dino_only",
+      "yolo_f1": null,
+      "yolo_ap50": null,
+      "dino_f1": 0.6111,
+      "dino_ap50": 0.6172
+    }
+  }
+}

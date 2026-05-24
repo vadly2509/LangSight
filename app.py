@@ -95,15 +95,76 @@ NC = len(TARGET_CLASSES)
 
 # PROMPT ENGINEERING UNTUK GROUNDING DINO
 CLASS_PROMPTS = {
-    "pen"            : "ballpoint pen . ink pen . writing pen . gel pen .",
-    "pencil"         : "graphite pencil . wooden pencil . lead pencil . drafting pencil .",
-    "eraser"         : "rubber eraser block . white eraser . pencil eraser .",
-    "sharpener"      : "pencil sharpener . handheld sharpener .",
-    "correction_tape": "correction tape . white out tape . correction roller .",
-    "stapler"        : "office stapler . paper stapler . manual stapler .",
-    "clip"           : "paper clip . binder clip . metal paperclip .",
-    "bottle"         : "water bottle . drink bottle . beverage container .",
-    "notebook"       : "spiral notebook . exercise book . notepad . lined notebook .",
+
+    "pen": (
+        "ballpoint pen . ink pen . writing pen . gel pen . "
+        "long thin plastic pen . black office pen . "
+        "retractable writing pen . slim writing instrument . "
+        "plastic ballpoint writing tool . handheld pen object ."
+    ),
+
+    "pencil": (
+        "graphite pencil . wooden pencil . lead pencil . "
+        "drafting pencil . long thin pencil . yellow pencil . "
+        "hexagonal wooden pencil . sharpened writing pencil . "
+        "school pencil . traditional graphite writing tool ."
+    ),
+
+    "eraser": (
+        "rubber eraser block . white eraser . pencil eraser . "
+        "small rectangular eraser . soft rubber erasing tool . "
+        "stationery eraser . correction eraser block . "
+        "compact rubber eraser . handheld erasing object . "
+        "school eraser tool ."
+    ),
+
+    "sharpener": (
+        "pencil sharpener . handheld sharpener . "
+        "small plastic sharpener . cylindrical pencil sharpener . "
+        "manual pencil sharpening tool . desktop sharpener . "
+        "compact sharpening device . stationery sharpener . "
+        "small blade pencil sharpener . handheld stationery tool ."
+    ),
+
+    "correction_tape": (
+        "correction tape . white out tape . correction roller . "
+        "white correction roller . small white correction dispenser . "
+        "rectangular correction tape dispenser . tipex roller . "
+        "stationery correction device . handheld correction tool . "
+        "white correction strip applicator ."
+    ),
+
+    "stapler": (
+        "office stapler . paper stapler . manual stapler . "
+        "desktop stapler . metal office stapling tool . "
+        "black office stapler . handheld stapling device . "
+        "paper fastening tool . standard desk stapler . "
+        "compact office stapler machine ."
+    ),
+
+    "clip": (
+        "paper clip . binder clip . metal paperclip . "
+        "small metal paper clip . tiny silver wire clip . "
+        "flat metallic paperclip . thin metal document fastener . "
+        "office document clip . stationery fastening clip . "
+        "small silver office clip ."
+    ),
+
+    "bottle": (
+        "water bottle . drink bottle . beverage container . "
+        "plastic water bottle . transparent drink bottle . "
+        "cylindrical bottle . reusable water container . "
+        "liquid container bottle . portable drinking bottle . "
+        "plastic beverage vessel ."
+    ),
+
+    "notebook": (
+        "spiral notebook . exercise book . notepad . "
+        "lined notebook . paper notebook . "
+        "spiral bound writing notebook . school notebook . "
+        "paper writing book . stationery notebook object . "
+        "bound paper notebook ."
+    ),
 }
 
 # Negative cues — diberikan ke DINO sebagai "anti-prompt" untuk kelas yang sering

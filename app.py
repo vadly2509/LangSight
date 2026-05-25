@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 from collections import deque, defaultdict
+from difflib import get_close_matches
 
 import cv2
 import numpy as np
@@ -320,7 +321,7 @@ _ID_SEEDS = {
         "rautan saya", "rautanku", "di mana rautan", "mana rautan",
     ],
     "correction_tape": [
-        "tipex", "tipex roll", "tipex roller", "tip-ex", "tipe-x", "tipp-ex",
+        "tipex", "tipecs", "tipex roll", "tipex roller", "tip-ex", "tipe-x", "tipp-ex",
         "tip x", "tip-x", "tippex", "stipo", "stipoe",
         "correction tape", "pita koreksi", "pita tipex",
         "penghapus tulisan pita putih", "pita penutup tulisan",
@@ -599,7 +600,10 @@ class LangSightNLP:
                 return None, "blacklist", []
 
         if not self._use_semantic:
-            return self._keyword_predict(q)
+            kw = self._keyword_predict(q)
+            if kw[0]:
+                return kw
+            return self._fuzzy_keyword_predict(q)
 
         try:
             qvec = self._st.encode(q, convert_to_tensor=True, normalize_embeddings=True)
@@ -620,10 +624,19 @@ class LangSightNLP:
 
             # Skor di bawah threshold -> coba keyword sebagai fallback dulu.
             if top_score < thresh:
+
                 kw = self._keyword_predict(q)
+
                 if kw[0]:
                     log.info(f"  NLP keyword fallback -> {kw[0]}")
                     return kw
+
+                fuzzy = self._fuzzy_keyword_predict(q)
+
+                if fuzzy[0]:
+                    log.info(f"  NLP fuzzy fallback -> {fuzzy[0]}")
+                    return fuzzy
+
                 return None, "semantic", ranked
 
             # Gap terlalu tipis antara top-1 dan top-2 -> ambigu, coba keyword.
@@ -632,6 +645,15 @@ class LangSightNLP:
                 if kw[0]:
                     log.info(f"  NLP gap kecil ({gap:.3f}) -> keyword fallback -> {kw[0]}")
                     return kw
+                    
+                fuzzy = self._fuzzy_keyword_predict(q)
+                if fuzzy[0]:
+                    log.info(
+                        f"  NLP gap kecil ({gap:.3f}) "
+                        f"-> fuzzy fallback -> {fuzzy[0]}"
+                    )
+                    return fuzzy
+                
                 log.info(f"  NLP gap terlalu kecil ({gap:.3f}) - rejected")
                 return None, "semantic", ranked
 
@@ -639,18 +661,39 @@ class LangSightNLP:
 
         except Exception as e:
             log.error(f"NLP error: {e}")
-            return self._keyword_predict(q)
+            kw = self._keyword_predict(q)
+            if kw[0]:
+                return kw
+            return self._fuzzy_keyword_predict(q)
 
     def _keyword_predict(self, query: str):
-        """Exact-substring match query terhadap anchor seeds."""
+        """Keyword match berbasis token/word."""
         n = re.sub(r"[^a-z0-9\s]", " ", query.lower())
         n = re.sub(r"\s+", " ", n).strip()
+        q_words = n.split()
         for cls, terms in self._active.items():
             for t in terms:
-                if t.lower() in n:
-                    return cls, "keyword", [(cls, 1.0)]
+                term_words = t.lower().split()
+                if any(tw in q_words for tw in term_words):
+                    return cls, "keyword", [(cls,1.0)]
         return None, "keyword", []
 
+    def _fuzzy_keyword_predict(self, query: str):
+        """Keyword match dengan toleransi typo."""
+        q_words = query.lower().split()
+        for cls, terms in self._active.items():
+            for term in terms:
+                term_words = term.lower().split()
+                for qw in q_words:
+                    matches = get_close_matches(
+                        qw,
+                        term_words,
+                        n=1,
+                        cutoff=0.75
+                    )
+                    if matches:
+                        return cls, "fuzzy_keyword", [(cls, 0.85)]
+        return None, "fuzzy_keyword", []
 
 
 # YOLOv11n DETECTOR — closed-set model fine-tuned di dataset alat tulis
@@ -1843,3 +1886,24 @@ async def export_session():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host=HOST, port=PORT, reload=False, log_level="info")
+    
+    #print("\n===== A5 TEST =====")
+
+    # NLP engine
+    #ANCHORS = build_anchors()
+    #nlp = LangSightNLP(ST_MODEL_NAME, anchors=ANCHORS)
+
+    #print("ANCHORS TYPE =", type(ANCHORS))
+    #print("ANCHORS LEN =", len(ANCHORS))
+    #print("ANCHORS =", ANCHORS)
+
+    #tests = [
+    #    "steapler",
+    #    "pengapuss",
+    #    "tipek",
+    #    "pensill",
+    #    "botol"
+    #]
+
+    #for q in tests:
+    #    print(q, "->", nlp.predict(q))

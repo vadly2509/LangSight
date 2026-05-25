@@ -193,15 +193,18 @@ CLASS_THRESHOLDS = {
 # Deteksi dengan aspect ratio di luar range ini di-downweight 30%.
 # None = tidak ada constraint.
 CLASS_AR_RANGE = {
-    "pen"            : (1.5, 12.0),  # panjang horizontal/vertikal
-    "pencil"         : (1.5, 12.0),
-    "clip"           : (0.5, 2.5),   # kecil dan kompak
-    "bottle"         : (0.25, 1.5),  # tinggi vertikal (tapi tetap longgar)
-    "notebook"       : (0.5, 2.5),
-    "correction_tape": (0.6, 3.0),
-    "stapler"        : (0.8, 4.0),
-    "eraser"         : (0.4, 3.5),
-    "sharpener"      : (0.5, 2.5),
+    "pen"            : (1.1, 15.0),  # GT P5=1.11, P95=14.97 → banyak bbox sangat panjang
+    "pencil"         : (1.3, 26.6),  # GT P5=1.30, P95=26.58 → lebih ekstrem daripada pen
+
+    "clip"           : (1.0, 3.1),   # GT P5=1.04, P95=3.09 → objek kecil, compact tapi variatif
+    "bottle"         : (1.1, 3.3),   # GT P5=1.17, P95=3.28 → lebih vertikal, namun tidak sesempit task
+
+    "notebook"       : (1.0, 2.0),   # GT P5=1.01, P95=1.99 → cukup stabil, dekat dengan task
+    "correction_tape": (1.6, 1.9),   # GT P5=1.60, P95=1.87 → distribusi sangat rapat
+
+    "stapler"        : (1.0, 1.8),   # GT P5=1.05, P95=1.79 → bbox relatif konsisten
+    "eraser"         : (1.0, 2.6),   # GT P5=1.05, P95=2.54 → bentuk cukup compact
+    "sharpener"      : (1.0, 2.5),   # GT P5=1.04, P95=2.43 → range moderat
 }
 
 # Minimum dan maximum luas box sebagai persen image area.

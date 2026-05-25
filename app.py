@@ -1179,11 +1179,16 @@ def _iou(a, b):
 # Pen / pencil panjang dan tipis -> IoU lebih rendah supaya partial-overlap di-merge.
 # Clip kecil dan sering berdekatan -> IoU lebih tinggi supaya tidak over-merge.
 _CLASS_NMS_IOU = {
-    "pen"   : 0.35,
+    "pen": 0.35,
     "pencil": 0.35,
-    "clip"  : 0.60,
+    "clip": 0.60,
+    "correction_tape": 0.40,
+    "stapler": 0.55,
+    "notebook": 0.55,
+    "bottle": 0.50,
+    "eraser": 0.50,
+    "sharpener": 0.50,
 }
-
 
 def _nms(dets, iou_thr=None):
     """Non-Maximum Suppression dengan IoU threshold per-kelas."""

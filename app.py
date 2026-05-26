@@ -800,7 +800,8 @@ class WBFEnsemble:
             yolo_dets = []
 
         # DINO selalu jalan (juga untuk kelas DINO-only).
-        dino_dets = self.dino.detect(
+        # Override dengan method baru: detect_multi_prompt. Bisa rollback ke detect jika tidak ada variant (cek def _detect_multi_prompt)
+        dino_dets = self.dino.detect_multi_prompt(
             img_bgr, target_class,
             box_threshold=dino_box_thr,
             text_threshold=dino_text_thr,
@@ -984,6 +985,30 @@ class GroundingDINODetector:
             return 1.0
         # Penalti soft: ar di luar batas -> skor x 0.7
         return 0.7
+    
+    # method detect baru (multi prompt)
+    def detect_multi_prompt(self, img_bgr, target_class, box_threshold=None, text_threshold=None):
+        """A2: Run DINO multiple times dengan prompt berbeda dan merge hasilnya."""
+        variants = PROMPT_VARIANTS.get(target_class)
+        if not variants:
+            # If no variants, maka run secara normal
+            return self.detect(img_bgr, target_class, box_threshold, text_threshold)
+            
+        all_dets = []
+        original_prompt = CLASS_PROMPTS.get(target_class)
+        
+        # Temporarily menukar global prompt dan menjalankan inference
+        for prompt_variant in variants:
+            CLASS_PROMPTS[target_class] = prompt_variant
+            dets = self.detect(img_bgr, target_class, box_threshold, text_threshold)
+            all_dets.extend(dets)
+            
+        # Restore original prompt
+        if original_prompt: 
+            CLASS_PROMPTS[target_class] = original_prompt
+            
+        # Clean up duplicates
+        return _nms(all_dets, iou_thr=0.50)[:5]
 
     # inference 
     def detect(self, img_bgr, target_class, box_threshold=None, text_threshold=None):

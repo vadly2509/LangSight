@@ -401,12 +401,25 @@ def get_dynamic_threshold(base_threshold: float) -> float:
 
 
 # TEMPORAL SMOOTHING
-_TEMPORAL_WINDOW   = 3
-_TEMPORAL_ALPHA    = 0.6
+TEMPORAL_CONFIG = {
+    "clip"      : {"window": 5, "alpha": 0.50},
+    "sharpener" : {"window": 4, "alpha": 0.55},
+    "pen"       : {"window": 3, "alpha": 0.60},
+    "pencil"    : {"window": 3, "alpha": 0.60},
+    "notebook"  : {"window": 2, "alpha": 0.70},
+    "bottle"    : {"window": 2, "alpha": 0.70},
+    "stapler"   : {"window": 2, "alpha": 0.65},
+    "eraser"    : {"window": 3, "alpha": 0.60},
+    "correction_tape": {"window": 2, "alpha": 0.65},
+}
 _temporal_history: dict = defaultdict(list)
 
 
 def temporal_smooth(target_class: str, new_dets: list) -> list:
+    cfg = TEMPORAL_CONFIG.get(target_class, {})
+    window_size = cfg.get("window", 3)
+    alpha = cfg.get("alpha", 0.6)
+
     now = time.time()
     history = _temporal_history[target_class]
 

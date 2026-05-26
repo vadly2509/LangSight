@@ -1695,6 +1695,39 @@ async def detect_batch(
 
 # ADMIN ENDPOINTS — runtime configuration tanpa restart
 
+@app.get("/admin/benchmark")
+async def internal_benchmark(n_runs: int = 10):
+    """E4: Latency Benchmark Sistematis untuk resolusi berbeda."""
+    import statistics
+    
+    if detector is None:
+        return JSONResponse({"error": "DINO model not ready"})
+        
+    results = {}
+    test_sizes = [(320, 240), (640, 480), (1280, 720)]
+    
+    for w, h in test_sizes:
+        # Generate dummy image (array) yang merepresentasikan resolusi kamera
+        dummy = np.zeros((h, w, 3), dtype=np.uint8)
+        latencies = []
+        
+        # Warmup run (tujuannya biar kalau ada boot pelan ga ngerusak math nya)
+        detector.detect(dummy, "pen", 0.35, 0.25)
+        
+        for _ in range(n_runs):
+            t0 = time.perf_counter()
+            detector.detect(dummy, "pen", 0.35, 0.25)
+            latencies.append((time.perf_counter() - t0) * 1000)
+            
+        latencies.sort()
+        results[f"{w}x{h}"] = {
+            "mean_ms": round(statistics.mean(latencies), 1),
+            "p50_ms": round(statistics.median(latencies), 1),
+            "p95_ms": round(latencies[int(0.95 * len(latencies)) - 1], 1) if latencies else 0,
+        }
+        
+    return JSONResponse({"runs_per_resolution": n_runs, "benchmark_results": results})
+
 @app.post("/admin/prompt")
 async def update_prompt(cls: str = Form(...), prompt: str = Form(...)):
     """Edit prompt Grounding DINO untuk satu kelas tanpa perlu restart server.

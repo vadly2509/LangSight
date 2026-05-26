@@ -1220,6 +1220,12 @@ async def lifespan(app):
     log.info("Building anchors (WordNet + OMW)...")
     ANCHORS = build_anchors()
 
+    # inject anchor tersimpan dari file JSON jika ada
+    overrides = load_anchor_overrides()
+    for cls, terms in overrides.items():
+        if cls in ANCHORS:
+            ANCHORS[cls] = list(set(ANCHORS[cls] + terms))
+
     # 2. NLP engine.
     nlp = LangSightNLP(ST_MODEL_NAME, anchors=ANCHORS)
 

@@ -428,14 +428,14 @@ def temporal_smooth(target_class: str, new_dets: list) -> list:
 
     # Kasus: tidak ada deteksi baru tapi ada riwayat -> mungkin objek sebenarnya masih ada.
     if not new_dets and history:
-        last_confs = [h["conf"] for h in history[-_TEMPORAL_WINDOW:]]
+        last_confs = [h["conf"] for h in history[-window_Size:]]
         if len(last_confs) >= 2 and sum(last_confs) / len(last_confs) > 0.35:
             ghost = history[-1].copy()
             ghost["confidence"] = round(ghost["conf"] * 0.7, 4)
             ghost["smoothed"]   = True
             ghost["ghost"]      = True
             history.append({"bbox": ghost["bbox"], "conf": ghost["confidence"], "ts": now})
-            _temporal_history[target_class] = history[-_TEMPORAL_WINDOW * 2:]
+            _temporal_history[target_class] = history[-window_size * 2:]
             return [ghost]
         _temporal_history[target_class] = history
         return []
@@ -450,11 +450,11 @@ def temporal_smooth(target_class: str, new_dets: list) -> list:
         if len(matching) >= 2:
             # Muncul konsisten -> exponential moving average + bonus konsistensi.
             avg_hist = sum(h["conf"] for h in matching) / len(matching)
-            smoothed_conf = _TEMPORAL_ALPHA * conf + (1 - _TEMPORAL_ALPHA) * avg_hist
+            smoothed_conf = alpha * conf + (1 - alpha) * avg_hist
             consistency_bonus = min(0.08, len(matching) * 0.03)
             smoothed_conf = min(0.99, smoothed_conf + consistency_bonus)
         elif len(matching) == 1:
-            smoothed_conf = _TEMPORAL_ALPHA * conf + (1 - _TEMPORAL_ALPHA) * matching[0]["conf"]
+            smoothed_conf = alpha * conf + (1 - alpha) * matching[0]["conf"]
         else:
             # Baru muncul -> turunkan untuk meredam noise frame tunggal.
             smoothed_conf = conf * 0.85
@@ -465,7 +465,7 @@ def temporal_smooth(target_class: str, new_dets: list) -> list:
         smoothed.append(d)
         history.append({"bbox": bbox, "conf": smoothed_conf, "ts": now})
 
-    _temporal_history[target_class] = history[-_TEMPORAL_WINDOW * 2:]
+    _temporal_history[target_class] = history[-window_size * 2:]
     return smoothed
 
 

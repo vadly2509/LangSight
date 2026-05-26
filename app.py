@@ -83,6 +83,13 @@ ENSEMBLE_WEIGHTS_PATH = Path(os.environ.get(
     str(MODEL_DIR / "ensemble_weights.json"),
 ))
 WBF_IOU_THR = float(os.environ.get("WBF_IOU_THR", "0.50"))
+WBF_IOU_PER_CLASS = {
+    "pen"            : 0.30,
+    "pencil"         : 0.30,
+    "clip"           : 0.30,
+    "correction_tape": 0.35,
+    "stapler"        : 0.45,
+}
 
 # 9 kelas final yang didukung sistem.
 TARGET_CLASSES = [
@@ -803,7 +810,8 @@ class WBFEnsemble:
             for j in range(i + 1, len(items)):
                 if used[j]:
                     continue
-                if _iou(items[i]["bbox"], items[j]["bbox"]) >= self.wbf_iou:
+                iou_thr = WBF_IOU_PER_CLASS.get(target_class, self.wbf_iou)
+                if _iou(items[i]["bbox"], items[j]["bbox"]) >= iou_thr:
                     cluster.append(items[j])
                     used[j] = True
 

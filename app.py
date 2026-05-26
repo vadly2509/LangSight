@@ -115,6 +115,18 @@ CLASS_NEGATIVE_CUES = {
     "stapler"        : "correction tape . pencil case .",
 }
 
+# Menambahkan PROMPT_VARIANTS sebagai variable override (temporary)
+PROMPT_VARIANTS = {
+    "clip": [
+        "small metal paper clip . binder clip .",
+        "flat metallic paperclip . silver wire fastener .",
+    ],
+    "sharpener": [
+        "pencil sharpener . handheld sharpener .",
+        "small plastic sharpener . cylindrical pencil sharpener .",
+    ]
+}
+
 # IoU threshold untuk matching detection saat evaluasi TP/FP/FN.
 # Objek panjang-tipis (pen, pencil) memakai threshold lebih longgar supaya
 # partial-overlap dengan ground truth tetap dihitung sebagai TP.

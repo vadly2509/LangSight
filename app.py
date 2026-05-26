@@ -1705,6 +1705,20 @@ async def get_calibration():
 _AL_DIR = MODEL_DIR / "active_learning"
 _AL_DIR.mkdir(parents=True, exist_ok=True)
 
+#A6 (utk optimasi pake anchor embedding)
+ANCHOR_OVERRIDE_PATH = MODEL_DIR / "anchor_overrides.json"
+
+def load_anchor_overrides():
+    if not ANCHOR_OVERRIDE_PATH.exists():
+        return {}
+    with open(ANCHOR_OVERRIDE_PATH) as f:
+        return json.load(f)
+
+def save_anchor_override(cls: str, new_terms: list):
+    overrides = load_anchor_overrides()
+    overrides[cls] = new_terms
+    with open(ANCHOR_OVERRIDE_PATH, "w") as f:
+        json.dump(overrides, f, ensure_ascii=False, indent=2)
 
 @app.post("/feedback")
 async def submit_feedback(
@@ -1759,6 +1773,7 @@ async def submit_feedback(
                 )
                 nlp._embs[target_class] = new_emb
                 log.info(f"Active learning: anchor '{query}' ditambah ke [{target_class}]")
+                save_anchor_override(target_class, existing)
             except Exception as e:
                 log.warning(f"Active learning re-encode error: {e}")
 

@@ -766,6 +766,13 @@ class WBFEnsemble:
         else:
             yolo_dets = []
 
+        w_yolo, w_dino = self._weights_for(target_class)
+        best_yolo_conf = max((d["confidence"] for d in yolo_dets), default=0.0)
+
+        if (w_yolo >= 0.80 and best_yolo_conf >= 0.75 and target_class not in self.dino_only_classes):
+            log.info(f"Lazy DINO triggered: skipping DINO for '{target_class}' because YOLO is confident (w_yolo={w_yolo}, conf={best_yolo_conf})")
+            return temporal_smooth(target_class, yolo_dets)
+
         # DINO selalu jalan (juga untuk kelas DINO-only).
         dino_dets = self.dino.detect(
             img_bgr, target_class,
@@ -781,7 +788,6 @@ class WBFEnsemble:
                 d["source"] = "dino_only"
             return dino_dets
 
-        w_yolo, w_dino = self._weights_for(target_class)
         return self._fuse(yolo_dets, dino_dets, w_yolo, w_dino, target_class)
 
     def _fuse(self, yolo_dets, dino_dets, w_yolo, w_dino, target_class):

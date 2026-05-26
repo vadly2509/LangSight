@@ -440,7 +440,7 @@ def temporal_smooth(target_class: str, new_dets: list) -> list:
 
     # Kasus: tidak ada deteksi baru tapi ada riwayat -> mungkin objek sebenarnya masih ada.
     if not new_dets and history:
-        last_confs = [h["conf"] for h in history[-window_Size:]]
+        last_confs = [h["conf"] for h in history[-window_size:]]
         if len(last_confs) >= 2 and sum(last_confs) / len(last_confs) > 0.35:
             ghost = history[-1].copy()
             ghost["confidence"] = round(ghost["conf"] * 0.7, 4)

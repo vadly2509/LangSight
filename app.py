@@ -915,7 +915,6 @@ class GroundingDINODetector:
     def __init__(self, model_id: str = GDINO_MODEL_ID):
         import torch
         from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
-        img_bgr = preprocess_adaptive(img_bgr)
 
         self.device   = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_id = model_id
@@ -978,6 +977,7 @@ class GroundingDINODetector:
             - temporal smoothing
         """
         import torch
+        img_bgr = preprocess_adaptive(img_bgr)
 
         # Threshold final: per-class override -> argument -> default global.
         base_bt = PER_CLASS_BOX_THR.get(

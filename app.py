@@ -1098,7 +1098,28 @@ class GroundingDINODetector:
             all_dets.extend(dets)
         return _nms(all_dets, 0.5)[:15]
 
+def rerank_detections(dets: list, img_w: int, img_h: int) -> list:
+    """Prioritas: deteksi berdasarkanconfidence, size, dan distance ke camera center."""
+    if not dets: return dets
+    scored = []
+    for d in dets:
+        x1, y1, x2, y2 = d["bbox"]
+        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+        bw, bh = x2 - x1, y2 - y1
 
+        # Calculate seberapa dekat object ke center of screen (1.0 berarti sempurna)
+        center_score = 1.0 - (abs(cx / img_w - 0.5) + abs(cy / img_h - 0.5))
+        # Calculate apakah size masuk akal? (~5% of the screen)
+        area_ratio = (bw * bh) / (img_w * img_h)
+        size_score = max(0.0, 1.0 - abs(area_ratio - 0.05) * 10)
+
+        # Pembobotan final score: 70% AI confidence, 20% center position, 10% size ideal
+        final_score = (0.70 * d["confidence"]) + (0.20 * center_score) + (0.10 * size_score)
+        scored.append((final_score, d))
+
+    # Sort agar final score tertinggi ada di list paling atas
+    scored.sort(key=lambda x: -x[0])
+    return [d for score, d in scored]
 
 # HELPERS — IoU, NMS, drawing, image utils
 
@@ -1478,6 +1499,8 @@ async def detect(
     # NMS cross-class kalau ada multiple sub-queries (cegah duplikat di area sama).
     if is_multi:
         all_dets = _nms(all_dets, 0.5)[:10]
+        # Re-rank box untuk memprioritaskan object central (tengah)
+        all_dets = rerank_detections(all_dets, img_bgr.shape[1], img_bgr.shape[0])
 
     FRAME_HISTORY.append({"n_det": len(all_dets), "ts": time.time()})
 

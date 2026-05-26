@@ -880,10 +880,22 @@ def _load_ensemble_weights(path: Path):
     with open(path) as f:
         return json.load(f)
 
-
+def preprocess_adaptive(img_bgr: np.ndarray) -> np.ndarray:
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    if gray.mean() < 60:
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+        lab[:, :, 0] = clahe.apply(lab[:, :, 0])
+        return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    elif gray.mean() > 200:
+        return cv2.convertScaleAbs(img_bgr, alpha=0.7, beta=0)
+    elif gray.std() < 30:
+        lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+        lab[:, :, 0] = cv2.equalizeHist(lab[:, :, 0])
+        return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    return img_bgr
 
 # GROUNDING DINO DETECTOR — zero-shot text-prompted object detection
-
 class GroundingDINODetector:
     """Wrapper Grounding DINO dengan beberapa optimisasi tambahan:
 
@@ -903,6 +915,7 @@ class GroundingDINODetector:
     def __init__(self, model_id: str = GDINO_MODEL_ID):
         import torch
         from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
+        img_bgr = preprocess_adaptive(img_bgr)
 
         self.device   = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_id = model_id

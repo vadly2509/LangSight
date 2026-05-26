@@ -575,6 +575,15 @@ class LangSightNLP:
         q = query.strip()
         if not q:
             return None, "empty", []
+        
+        # Handling negation
+        negation_words = ["bukan ", "selain ", "kecuali ", "not ", "except "]
+        is_negated = False
+        for neg in negation_words:
+            if neg in q.lower():
+                q = q.lower().replace(neg, "").strip() # Strip kata negatif agar AI bisa memilah base object
+                is_negated = True
+                break
 
         q_lower = q.lower()
         for bw in self._BLACKLIST:
@@ -618,6 +627,12 @@ class LangSightNLP:
                     return kw
                 log.info(f"  NLP gap terlalu kecil ({gap:.3f}) - rejected")
                 return None, "semantic", ranked
+            
+            # Intercept return jika ter-negasi
+            if is_negated and len(ranked) > 1:
+                ranked = [r for r in ranked if r[0] != top_cls]
+                top_cls = ranked[0][0]
+                log.info(f"NLP Negation Triggered: switched to {top_cls}")
 
             return top_cls, "semantic", ranked
 
